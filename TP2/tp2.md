@@ -15,7 +15,7 @@
        valid_lft forever preferred_lft forever
 2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
     link/ether 08:00:27:8c:58:ed brd ff:ff:ff:ff:ff:ff
-    inet 192.168.179.2/24 brd 192.168.179.255 scope global noprefixroute enp0s8
+    inet 10.1.1.2/24 brd 10.1.1.255 scope global noprefixroute enp0s8
        valid_lft forever preferred_lft forever
     inet6 fe80::a00:27ff:fe8c:58ed/64 scope link dadfailed tentative
        valid_lft forever preferred_lft forever
@@ -23,8 +23,8 @@
 
 ```
 [solar@Node1 ~]$ ip route show
-192.168.115.0/24 via 10.1.1.254 dev enp0s8 proto static metric 100
-192.168.179.0/24 dev enp0s8 proto kernel scope link src 192.168.179.2 metric 100
+10.1.1.0/24 via 10.1.1.254 dev enp0s8 proto static metric 100
+10.1.1.0/24 dev enp0s8 proto kernel scope link src 10.1.1.2 metric 100
 ```
 
 ```
@@ -124,6 +124,8 @@ rtt min/avg/max/mdev = 14.018/15.274/16.313/0.825 ms
 
 ## III. Services réseau
 
+### 1. Serveur Web 
+
 ☀️ Sur web.lan2.tp2
 
 ```
@@ -163,7 +165,7 @@ rtt min/avg/max/mdev = 14.018/15.274/16.313/0.825 ms
 ```
 
 ```
-tcp        ESTAB       0           0                                 192.168.115.3:http                  192.168.115.1:80
+tcp        ESTAB       0           0                                 10.1.1.3:http                  10.1.1.1:80
 
 ```
 
@@ -487,7 +489,113 @@ sudo nano /etc/hosts
       <a href="https://apache.org">Apache&trade;</a> is a registered trademark of <a href="https://apache.org">the Apache Software Foundation</a> in the United States and/or other countries.<br />
       <a href="https://nginx.org">NGINX&trade;</a> is a registered trademark of <a href="https://">F5 Networks, Inc.</a>.
       </footer>
-
   </body>
 </html>
+```
+
+
+### 2. Or is it ? Bonus : DHCP
+
+☀️ Sur dhcp.lan1.tp2
+
+```
+[solar@dhcp ~]$ sudo dnf install dhcp -y
+```
+
+```
+[solar@dhcp ~]$ sudo cat /etc/dhcp/dhcpd.conf
+#
+# DHCP Server Configuration file.
+#   see /usr/share/doc/dhcp-server/dhcpd.conf.example
+#   see dhcpd.conf(5) man page
+#
+# create new
+
+# specify domain name
+option domain-name     "srv.world";
+
+# specify DNS server's hostname or IP address
+option domain-name-servers     dlp.srv.world;
+
+# default lease time
+default-lease-time 600;
+
+# max lease time
+max-lease-time 7200;
+
+# this DHCP server to be declared valid
+authoritative;
+
+# specify network address and subnetmask
+subnet 10.0.0.0 netmask 255.255.255.0 {
+    # specify the range of lease IP address
+    range dynamic-bootp 10.0.0.200 10.0.0.254;
+    # specify broadcast address
+    option broadcast-address 10.0.0.255;
+    # specify gateway
+    option routers 10.0.0.1;
+}
+```
+
+```
+[solar@dhcp ~]$ sudo firewall-cmd --add-service=dhcp
+```
+
+```
+[solar@dhcp ~]$ sudo firewall-cmd --runtime-to-permanent
+```
+
+```
+[solar@dhcp ~]$ sudo systemctl start dhcpd
+```
+
+```
+[solar@dhcp ~]$ sudo systemctl enable dhcpd
+```
+
+```
+[solar@dhcp ~]$ sudo systemctl status dhcpd
+○ dhcpd.service - DHCPv4 Server Daemon
+     Loaded: loaded (/usr/lib/systemd/system/dhcpd.service; enabled; preset: disabled)
+     Active: inactive (dead)
+       Docs: man:dhcpd(8)
+             man:dhcpd.conf(5)
+```
+
+☀️ Sur node1.lan1.tp2
+    
+```
+[solar@Node1 ~]$ sudo dhclient -v
+```
+
+```
+[solar@Node1 ~]$ ip a
+3: enp0s8: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:8c:58:ed brd ff:ff:ff:ff:ff:ff
+    inet 10.1.1.100/24 brd 10.1.1.255 scope global dynamic noprefixroute enp0s8
+       valid_lft 472sec preferred_lft 472sec
+    inet6 fe80::a00:27ff:fe8c:58ed/64 scope link dadfailed tentative
+       valid_lft forever preferred_lft forever
+```
+
+```
+[solar@Node1 ~]$ ip route show
+default via 10.1.1.254 dev enp0s8 proto static metric 100
+default via 10.1.2.254 dev enp0s8 proto dhcp src 10.1.1.100 metric 100
+10.1.2.254 dev enp0s8 proto dhcp scope link src 10.1.1.100 metric 100
+10.1.1.0/24 dev enp0s8 proto kernel scope link src 10.1.1.100 metric 100
+10.1.1.254 dev enp0s8 proto static scope link metric 100
+```
+
+``` 
+[solar@Node1 ~]$ ping 192.168.115.2
+PING 192.168.115.2 (192.168.115.2) 56(84) bytes of data.
+64 bytes from 192.168.115.2: icmp_seq=1 ttl=63 time=1.77 ms
+64 bytes from 192.168.115.2: icmp_seq=2 ttl=63 time=2.11 ms
+64 bytes from 192.168.115.2: icmp_seq=3 ttl=63 time=2.68 ms
+64 bytes from 192.168.115.2: icmp_seq=4 ttl=63 time=2.50 ms
+^C
+--- 192.168.115.2 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3011ms
+rtt min/avg/max/mdev = 1.766/2.264/2.682/0.354 ms
 ```
