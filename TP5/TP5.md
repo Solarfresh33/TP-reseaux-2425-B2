@@ -139,3 +139,29 @@ Comme l'ip du serveur est celle d'un camarade, le DOS n'est pas forcément super
 
 ## II. Remédiation
 
+🌞 Proposer une remédiation dév
+
+- **Vérifier les entrées utilisateurs**
+
+- **Utiliser des librairies sécurisées**
+
+- **Utiliser des outils de sécurité**
+
+🌞 Proposer une remédiation système
+
+- **Mettre à jour le système**
+
+- **Utiliser des outils de sécurité**
+
+- **Utiliser des outils de surveillance**
+
+- **Utiliser des outils de détection d'intrusion**
+
+- **Bloquer les ports non utilisés**
+
+- **Bloquer les adresses IP non autorisées**
+
+- **Bloquer les protocoles non autorisés**
+
+- **Bloquer les services non autorisés**
+
